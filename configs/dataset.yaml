@@ -1,0 +1,19 @@
+seed: 42
+target_size: 10000
+
+labels:
+  darija_arabic: 0.30
+  darija_latin: 0.20
+  other: 0.50
+
+splits:
+  train: 0.80
+  valid: 0.10
+  test: 0.10
+
+sources:
+    n_dataset: 3
+    #dataset0: atlasia/Darija_LID_Anootation_10k
+    dataset1: atlasia/DODa-audio-dataset
+    dataset2: atlasia/Darija-LID
+
