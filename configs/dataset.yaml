@@ -13,7 +13,7 @@ splits:
 
 sources:
     n_dataset: 3
-    #dataset0: atlasia/Darija_LID_Anootation_10k
+    dataset0: atlasia/Darija_LID_Anootation_10k
     dataset1: atlasia/DODa-audio-dataset
     dataset2: atlasia/Darija-LID
 
