@@ -65,6 +65,11 @@ def parse_args() -> argparse.Namespace:
         help="Path to validation_report.json",
     )
     parser.add_argument(
+        "--dropped-conflicts-path",
+        default=str(REPO_ROOT / "data" / "processed" / "dropped_conflicts.json"),
+        help="Path to dropped_conflicts.json",
+    )
+    parser.add_argument(
         "--plots-dir",
         default=str(REPO_ROOT / "data" / "processed" / "plots"),
         help="Optional directory containing generated plot images to upload",
@@ -92,6 +97,7 @@ def build_readme(
     config,
     build_summary: dict,
     validation_report: dict,
+    dropped_conflicts: list[dict],
     plot_paths: list[Path],
     split_name: str,
 ) -> str:
@@ -114,10 +120,23 @@ def build_readme(
     ]
 
     dedup = build_summary.get("deduplication", {})
-    validation_stats = validation_report.get("stats", {})
-    duplicate_texts = validation_stats.get("duplicate_texts", "unknown")
-    warning_lines = validation_report.get("warnings", [])
-    warning_block = "\n".join(f"- {warning}" for warning in warning_lines) or "- none"
+    middle_conflict_examples: list[dict] = []
+    if dropped_conflicts:
+        example_count = min(5, len(dropped_conflicts))
+        start_index = max(0, (len(dropped_conflicts) - example_count) // 2)
+        middle_conflict_examples = dropped_conflicts[
+            start_index : start_index + example_count
+        ]
+    conflict_example_lines = []
+    for conflict in middle_conflict_examples:
+        conflict_example_lines.append(
+            "- "
+            f"`{conflict.get('text', '')}` "
+            f"(labels={conflict.get('labels', [])}, "
+            f"dialects={conflict.get('dialects', [])}, "
+            f"rows={conflict.get('row_count', 0)})"
+        )
+    conflict_example_block = "\n".join(conflict_example_lines) or "- none"
     plot_section = ""
     if plot_paths:
         plot_lines = []
@@ -181,13 +200,13 @@ This repository contains the final merged Darija language identification dataset
 - Output rows after deduplication: {dedup.get("output_rows", 0):,}
 - Duplicate rows removed: {dedup.get("duplicates_removed", 0):,}
 - Duplicate groups with label or dialect conflicts: {dedup.get("conflict_count", 0):,}
+- Raw rows excluded because they belonged to conflict groups: {dedup.get("dropped_conflict_rows", 0):,}
 
-## Validation
+## Example Conflict Cases
 
-- Validation passed: `{validation_report.get("is_valid", False)}`
-- Duplicate texts remaining after build: {duplicate_texts}
-- Validation warnings:
-{warning_block}
+Sampled from the middle of the conflict list:
+
+{conflict_example_block}
 
 ## Source Datasets
 
@@ -207,6 +226,7 @@ def prepare_upload_folder(
     csv_path: Path,
     build_summary_path: Path,
     validation_report_path: Path,
+    dropped_conflicts_path: Path,
     readme_text: str,
     plot_paths: list[Path],
     split_name: str,
@@ -216,6 +236,7 @@ def prepare_upload_folder(
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(build_summary_path, artifacts_dir / "build_summary.json")
     shutil.copy2(validation_report_path, artifacts_dir / "validation_report.json")
+    shutil.copy2(dropped_conflicts_path, artifacts_dir / "dropped_conflicts.json")
     if plot_paths:
         plots_dir = upload_dir / "plots"
         plots_dir.mkdir(parents=True, exist_ok=True)
@@ -231,11 +252,13 @@ def main() -> None:
     csv_path = Path(args.csv_path)
     build_summary_path = Path(args.build_summary_path)
     validation_report_path = Path(args.validation_report_path)
+    dropped_conflicts_path = Path(args.dropped_conflicts_path)
     plots_dir = Path(args.plots_dir)
 
     ensure_exists(csv_path)
     ensure_exists(build_summary_path)
     ensure_exists(validation_report_path)
+    ensure_exists(dropped_conflicts_path)
 
     plot_paths: list[Path] = []
     if plots_dir.exists():
@@ -247,11 +270,13 @@ def main() -> None:
 
     build_summary = load_json(build_summary_path)
     validation_report = load_json(validation_report_path)
+    dropped_conflicts = load_json(dropped_conflicts_path)
     readme_text = build_readme(
         repo_id=args.repo_id,
         config=config,
         build_summary=build_summary,
         validation_report=validation_report,
+        dropped_conflicts=dropped_conflicts,
         plot_paths=plot_paths,
         split_name=args.split_name,
     )
@@ -271,6 +296,7 @@ def main() -> None:
             csv_path=csv_path,
             build_summary_path=build_summary_path,
             validation_report_path=validation_report_path,
+            dropped_conflicts_path=dropped_conflicts_path,
             readme_text=readme_text,
             plot_paths=plot_paths,
             split_name=args.split_name,

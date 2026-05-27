@@ -58,6 +58,7 @@ def main() -> None:
     dataset_output_path = output_dir / "final_dataset"
     csv_output_path = output_dir / "final_dataset.csv"
     summary_output_path = output_dir / "build_summary.json"
+    conflicts_output_path = output_dir / "dropped_conflicts.json"
 
     if dataset_output_path.exists():
         shutil.rmtree(dataset_output_path)
@@ -78,10 +79,18 @@ def main() -> None:
     }
     with summary_output_path.open("w", encoding="utf-8") as file:
         json.dump(build_summary, file, ensure_ascii=False, indent=2)
+    with conflicts_output_path.open("w", encoding="utf-8") as file:
+        json.dump(
+            dedup_summary.get("conflicts", []),
+            file,
+            ensure_ascii=False,
+            indent=2,
+        )
 
     print(f"Saved final dataset to {dataset_output_path}")
     print(f"Saved final dataset CSV to {csv_output_path}")
     print(f"Saved build summary to {summary_output_path}")
+    print(f"Saved dropped conflicts to {conflicts_output_path}")
 
 
 if __name__ == "__main__":
