@@ -1,4 +1,6 @@
 datasets
+huggingface_hub
+matplotlib
 pandas
 scikit-learn
 pyyaml

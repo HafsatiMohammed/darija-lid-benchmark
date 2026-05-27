@@ -1,19 +1,24 @@
 seed: 42
-target_size: 10000
 
-labels:
-  darija_arabic: 0.30
-  darija_latin: 0.20
-  other: 0.50
+classes:
+  arabic_moroccan: 0
+  arabizi_moroccan: 1
+  other: 2
 
-splits:
-  train: 0.80
-  valid: 0.10
-  test: 0.10
+final_dataset:
+  fields:
+    - text
+    - dialect
+    - src
+    - has_latin_script
+    - label
+  deduplicate_on: text
+
 
 sources:
-    n_dataset: 3
+    n_dataset: 5
     dataset0: atlasia/Darija_LID_Anootation_10k
     dataset1: atlasia/DODa-audio-dataset
     dataset2: atlasia/Darija-LID
-
+    dataset3: UBC-NLP/alexandria
+    dataset4: https://huggingface.co/datasets/atlasia/levantine_dialects
