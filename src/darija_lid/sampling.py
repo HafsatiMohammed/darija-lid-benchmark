@@ -35,6 +35,7 @@ def deduplicate_records(
 
     deduplicated_records: list[dict] = []
     conflict_rows: list[dict] = []
+    dropped_conflict_rows = 0
 
     arabic_label = classes["arabic_moroccan"]
     arabizi_label = classes["arabizi_moroccan"]
@@ -47,6 +48,23 @@ def deduplicate_records(
         label_values = sorted({int(row["label"]) for row in rows})
         contains_latin = any(bool(row["has_latin_script"]) for row in rows)
         contains_latin = contains_latin or has_latin_script(text)
+
+        is_conflict = len(rows) > 1 and (
+            len(label_values) > 1 or len(dialect_values) > 1
+        )
+
+        if is_conflict:
+            conflict_rows.append(
+                {
+                    "text": text,
+                    "labels": label_values,
+                    "dialects": dialect_values,
+                    "src": src_values,
+                    "row_count": len(rows),
+                }
+            )
+            dropped_conflict_rows += len(rows)
+            continue
 
         if arabic_label in label_values or arabizi_label in label_values:
             resolved_dialect, contains_latin, resolved_label = moroccan_label_for_text(
@@ -79,21 +97,12 @@ def deduplicate_records(
             }
         )
 
-        if len(rows) > 1 and (len(label_values) > 1 or len(dialect_values) > 1):
-            conflict_rows.append(
-                {
-                    "text": text,
-                    "labels": label_values,
-                    "dialects": dialect_values,
-                    "src": src_values,
-                }
-            )
-
     summary = {
         "input_rows": len(records),
         "output_rows": len(deduplicated_records),
         "duplicates_removed": len(records) - len(deduplicated_records),
         "conflict_count": len(conflict_rows),
+        "dropped_conflict_rows": dropped_conflict_rows,
         "conflicts": conflict_rows,
     }
     return deduplicated_records, summary
